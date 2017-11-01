@@ -8,7 +8,7 @@ module Vidar
       @commands = {}
     end
 
-    def mount(klass)
+    def mount_subcommand(klass)
       @class = klass
       klass.public_instance_methods(false).each do |method_name|
         OptionParser.new.tap do |opt|
