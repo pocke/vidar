@@ -13,6 +13,7 @@ module Vidar
 
     def run(argv)
       args = @option_parser.parse(argv)
+      # https://bugs.ruby-lang.org/issues/11860
       if @kwargs.empty?
         @method.call(*args)
       else
@@ -45,47 +46,19 @@ module Vidar
 
   class CLI
     def initialize
-      @commands = {}
+      @subcommands = {}
     end
 
     def mount_subcommand(klass)
-      @class = klass
-      klass.public_instance_methods(false).each do |method_name|
-        OptionParser.new.tap do |opt|
-          @commands[method_name] = {
-            opt: opt,
-            args: {},
-          }
-
-          method = klass.public_instance_method(method_name)
-          method.parameters.each do |type, name|
-            case type
-            when :req, :opt, :rest
-              next
-            when :keyreq, :key
-              optname = name.size == 1 ? "-#{name}" : "--#{name.to_s.gsub('_', '-')}"
-              optname << " VALUE"
-              opt.on(optname) {|value| @commands[method_name][:args][name] = value}
-            when :keyrest, :block
-              raise "#{type} is not supported type!"
-            else
-              raise "#{type} is unknwon parameter type!"
-            end
-          end
-        end
+      instance = klass.new
+      instance.public_methods(false).each do |method_name|
+        @subcommands[method_name] = Command.new(instance.method(method_name))
       end
     end
 
     def run!(argv)
-      command = @commands[argv[0].to_sym]
-      args = command[:opt].parse(argv[1..-1])
-      # https://bugs.ruby-lang.org/issues/11860
-      keywords = command[:args]
-      if keywords.empty?
-        exit @class.new.public_send(argv[0].to_sym, *args)
-      else
-        exit @class.new.public_send(argv[0].to_sym, *args, **keywords)
-      end
+      command = @subcommands[argv[0].to_sym]
+      exit command.run(argv[1..-1])
     end
   end
 end
