@@ -3,6 +3,10 @@ require 'optparse'
 require "vidar/version"
 
 module Vidar
+  module Errors
+    class InvalidExitStatus < StandardError; end
+  end
+
   class Command
     def initialize(method)
       @method = method
@@ -18,6 +22,12 @@ module Vidar
         @method.call(*args)
       else
         @method.call(*args, **@kwargs)
+      end.tap do |exitstatus|
+        case exitstatus
+        when Integer, TrueClass, FalseClass
+        else
+          raise Errors::InvalidExitStatus, "#{@method.name} should return an Integer, true or false. But it returns #{exitstatus.inspect}"
+        end
       end
     end
 
