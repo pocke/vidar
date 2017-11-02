@@ -57,6 +57,12 @@ module Vidar
   class CLI
     def initialize
       @subcommands = {}
+      @main_command = nil
+    end
+
+    def mount(klass, method_name)
+      instance = klass.new
+      @main_command = Command.new(instance.method(method_name))
     end
 
     def mount_subcommand(klass)
@@ -67,8 +73,13 @@ module Vidar
     end
 
     def run!(argv)
-      command = @subcommands[argv[0].to_sym]
-      exit command.run(argv[1..-1])
+      if @main_command
+        @main_command.run(argv)
+      else
+        @subcommands[argv[0].to_sym].run(argv[1..-1])
+      end.tap do |exitstatus|
+        exit exitstatus
+      end
     end
   end
 end
