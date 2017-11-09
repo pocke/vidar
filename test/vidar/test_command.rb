@@ -52,7 +52,7 @@ class TestVidarCommand < Minitest::Test
     assert_equal 's should return an Integer, true or false. But it returns "meow"', err.message
   end
 
-  def test_command_validate_to_few_arguments
+  def test_command_validate_too_few_arguments
     too_few_arg = proc do |&block|
       ex = assert_raises(Vidar::Errors::CLIArgumentError, &block)
       assert_equal 'Too few arguments', ex.message
@@ -78,7 +78,7 @@ class TestVidarCommand < Minitest::Test
     assert_equal true, c.run([1])
   end
 
-  def test_command_validate_to_many_arguments
+  def test_command_validate_too_many_arguments
     too_many_arg = proc do |&block|
       ex = assert_raises(Vidar::Errors::CLIArgumentError, &block)
       assert_equal 'Too many arguments', ex.message
