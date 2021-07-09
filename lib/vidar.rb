@@ -5,6 +5,7 @@ require "vidar/version"
 module Vidar
   module Errors
     class InvalidExitStatus < StandardError; end
+    class CLIArgumentError < StandardError; end
   end
 
   class Command
@@ -17,6 +18,8 @@ module Vidar
 
     def run(argv)
       args = @option_parser.parse(argv)
+      validate!(args, @kwargs)
+
       # https://bugs.ruby-lang.org/issues/11860
       if @kwargs.empty?
         @method.call(*args)
@@ -35,8 +38,9 @@ module Vidar
 
     def mount
       @option_parser = OptionParser.new
+      @parameters = @method.parameters
 
-      @method.parameters.each do |type, name|
+      @parameters.each do |type, name|
         case type
         when :req, :opt, :rest
           # TODO
@@ -50,6 +54,18 @@ module Vidar
         else
           raise "#{type} is unknwon parameter type!"
         end
+      end
+    end
+
+    def validate!(args, kwargs)
+      req_count = @parameters.count {|t, _| t == :req}
+      opt_count = @parameters.count {|t, _| t == :opt}
+      rest_count = @parameters.count {|t, _| t == :rest}
+      if req_count > args.size
+        raise Errors::CLIArgumentError, 'Too few arguments'
+      end
+      if rest_count == 0 && (req_count + opt_count) < args.size
+        raise Errors::CLIArgumentError, 'Too many arguments'
       end
     end
   end
